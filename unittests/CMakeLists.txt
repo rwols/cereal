@@ -1,23 +1,34 @@
+
+find_package(Boost COMPONENTS unit_test_framework)
+
+if (NOT Boost_FOUND)
+  return()
+endif(NOT Boost_FOUND)
+
 file(GLOB TESTS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 
-# A semi-colon separated list of test sources that should not be automatically built with boost unit test
+# A semi-colon separated list of test sources that should not be automatically 
+# built with boost unit test
 set(SPECIAL_TESTS "portability_test.cpp")
 
-# Build the portability test only if we are on a 64-bit machine (void* is 8 bytes)
-if((${CMAKE_SIZEOF_VOID_P} EQUAL 8) AND (NOT SKIP_PORTABILITY_TEST))
+# Build the portability test only if we are on a 64-bit machine (void* is 8 
+# bytes)
+if((${CMAKE_SIZEOF_VOID_P} EQUAL 8) AND (NOT cereal_SKIP_PORTABILITY_TEST))
   add_executable(portability_test32 portability_test.cpp)
   set_target_properties(portability_test32 PROPERTIES COMPILE_FLAGS "-m32")
   set_target_properties(portability_test32 PROPERTIES LINK_FLAGS "-m32")
+  target_link_libraries(portability_test32 PUBLIC cereal)
 
   add_executable(portability_test64 portability_test.cpp)
 
-  add_test(NAME portability_test COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run_portability_test.sh")
+  add_test(NAME portability_test 
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run_portability_test.sh")
 
 endif()
 
-# Build all of the non-special tests and link against the boost unit test framework
+# Build all of the non-special tests and link against the boost unit test 
+# framework
 foreach(TEST_SOURCE ${TESTS})
-
   string(REPLACE ".cpp" "" TEST_TARGET "${TEST_SOURCE}")
   set(TEST_TARGET "test_${TEST_TARGET}")
 
@@ -25,11 +36,14 @@ foreach(TEST_SOURCE ${TESTS})
   list(FIND SPECIAL_TESTS "${TEST_SOURCE}" IS_SPECIAL_TEST)
 
   if(IS_SPECIAL_TEST EQUAL -1)
-
     add_executable(${TEST_TARGET} ${TEST_SOURCE})
-    set_target_properties(${TEST_TARGET} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK;BOOST_TEST_MODULE=${TEST_TARGET}")
-    target_link_libraries(${TEST_TARGET} ${Boost_LIBRARIES})
-    target_link_libraries(${TEST_TARGET} ${CEREAL_THREAD_LIBS})
+    set_target_properties(${TEST_TARGET} PROPERTIES 
+      COMPILE_DEFINITIONS 
+        "BOOST_TEST_DYN_LINK;BOOST_TEST_MODULE=${TEST_TARGET}")
+    target_include_directories(${TEST_TARGET} PUBLIC ${Boost_INCLUDE_DIRS})
+    target_link_libraries(${TEST_TARGET} PUBLIC ${Boost_LIBRARIES})
+    target_link_libraries(${TEST_TARGET} PUBLIC ${CEREAL_THREAD_LIBS})
+    target_link_libraries(${TEST_TARGET} PUBLIC cereal)
     add_test("${TEST_TARGET}" "${TEST_TARGET}")
 
     # TODO: This won't work right now, because we would need a 32-bit boost
@@ -69,15 +83,23 @@ foreach(TEST_SOURCE ${TESTS})
     add_dependencies(coverage ${COVERAGE_TARGET})
 
     add_executable(${COVERAGE_TARGET} EXCLUDE_FROM_ALL ${TEST_SOURCE})
-    set_target_properties(${COVERAGE_TARGET} PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK;BOOST_TEST_MODULE=${COVERAGE_TARGET}")
-    set_target_properties(${COVERAGE_TARGET} PROPERTIES COMPILE_FLAGS "-coverage")
-    set_target_properties(${COVERAGE_TARGET} PROPERTIES LINK_FLAGS "-coverage")
-    set_target_properties(${COVERAGE_TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/coverage")
-    target_link_libraries(${COVERAGE_TARGET} ${Boost_LIBRARIES})
-    target_link_libraries(${COVERAGE_TARGET} ${CEREAL_THREAD_LIBS})
+    set_target_properties(${COVERAGE_TARGET} PROPERTIES 
+      COMPILE_DEFINITIONS 
+        "BOOST_TEST_DYN_LINK;BOOST_TEST_MODULE=${COVERAGE_TARGET}")
+    set_target_properties(${COVERAGE_TARGET} PROPERTIES 
+      COMPILE_FLAGS "-coverage")
+    set_target_properties(${COVERAGE_TARGET} PROPERTIES 
+      LINK_FLAGS "-coverage")
+    set_target_properties(${COVERAGE_TARGET} PROPERTIES 
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/coverage")
+    target_include_directories(${COVERAGE_TARGET} PUBLIC ${Boost_INCLUDE_DIRS})
+    target_link_libraries(${COVERAGE_TARGET} PUBLIC ${Boost_LIBRARIES})
+    target_link_libraries(${COVERAGE_TARGET} PUBLIC ${CEREAL_THREAD_LIBS})
+    target_link_libraries(${COVERAGE_TARGET} PUBLIC cereal)
   endif()
 endforeach()
 
 if(NOT CMAKE_VERSION VERSION_LESS 3.0)
-  add_test(test_cmake_config_module ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake-config-module.cmake)
+  add_test(test_cmake_config_module 
+    ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake-config-module.cmake)
 endif()
